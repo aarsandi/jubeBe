@@ -1,0 +1,40 @@
+{
+  "name": "apt-ep-be",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "nodemon app.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/schemadevops/APT-EP-BE.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/schemadevops/APT-EP-BE/issues"
+  },
+  "homepage": "https://github.com/schemadevops/APT-EP-BE#readme",
+  "dependencies": {
+    "axios": "^0.27.2",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.0",
+    "express": "^4.17.3",
+    "express-validator": "^6.14.0",
+    "firebase-admin": "^10.2.0",
+    "jsonwebtoken": "^8.5.1",
+    "juice": "^8.0.0",
+    "moment": "^2.29.3",
+    "morgan": "^1.10.0",
+    "multer": "^1.4.4",
+    "node-cron": "^3.0.1",
+    "nodemailer": "^6.7.3",
+    "nodemon": "^2.0.15",
+    "pg": "^8.7.3",
+    "sequelize": "^6.17.0"
+  }
+}
