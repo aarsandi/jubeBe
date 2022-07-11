@@ -344,7 +344,7 @@ class ItemController {
                 }
             }
             await t.commit();
-            res.status(201).json({
+            res.status(200).json({
                 message: "success"
             })
         } catch(err) {
