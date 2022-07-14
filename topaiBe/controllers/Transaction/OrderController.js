@@ -1,6 +1,6 @@
 const {
     Sequelize, sequelize, UserEprescription, PrescriptionItem, ConcoctionItem, Prescription, Patient, Item, Concoction,
-    Order, ItemMedicineInfo, ItemKomposisiInfo, ItemStockInfo, OrderItem, OrderConcoction, Promo, PromoUser,
+    Order, ItemMedicineInfo, ItemKomposisiInfo, OrderItem, OrderConcoction, Promo, PromoUser,
     ItemConversionUnit, MasterItem_dropdown, ItemStockWarehouse
 } = require("../../models/index");
 
@@ -247,28 +247,19 @@ class OrderController {
                         let qtyRealRemaining = item.reducedQty || 0;
                         for await (let itemStock of findStockWarehouse) {
                             let qtyRemain = qtyRealRemaining - itemStock.qty
-                            const findStockInfo = await ItemStockInfo.findOne({where: { ItemId:item.ItemId, qty: itemStock.qty}})
                             if(qtyRemain>0) {
-                                if(findStockInfo) {
-                                    await findStockInfo.update({ qty: 0 }, {transaction:t})
-                                }
-                                await itemStock.update({qty: 0}, { transaction:t });
+                                await itemStock.update({qty: 0}, { transaction:t });                                
                                 resReducedStock.push({
                                     ItemId: item.ItemId,
                                     ItemStockWarehouseId : itemStock.id,
-                                    ItemStockInfoId: findStockInfo?findStockInfo.id:null,
                                     reducedQty: itemStock.qty
                                 })
                                 qtyRealRemaining -= item.qty
                             } else {
-                                if(findStockInfo) {
-                                    await findStockInfo.update({ qty: itemStock.qty-qtyRealRemaining }, {transaction:t})
-                                }
                                 await itemStock.update({qty: itemStock.qty-qtyRealRemaining}, { transaction:t });
                                 resReducedStock.push({
                                     ItemId: item.ItemId,
                                     ItemStockWarehouseId : itemStock.id,
-                                    ItemStockInfoId: findStockInfo?findStockInfo.id:null,
                                     reducedQty: qtyRealRemaining
                                 })
                                 break
@@ -283,9 +274,6 @@ class OrderController {
                         throw new Error('item stock is empty');
                     }
                 }
-                
-                // stok array yang berkurang
-                itemStockChange(resStockChange)
 
                 // generate refid and dueDate 1 day
                 let genTimeNow = new Date()
@@ -316,9 +304,11 @@ class OrderController {
 
                 const resOrderItem = resItems.map(el => ({...el, OrderId: createOrder.id}))
                 await OrderItem.bulkCreate(resOrderItem, { transaction: t })
-                
+
+                // stok array yang berkurang
+                itemStockChange(resStockChange)
+
                 await t.commit();
-                // await t.rollback();
 
                 res.status(201).json({
                     message: "success",
@@ -583,29 +573,19 @@ class OrderController {
                                 let qtyRealRemaining = item.reducedQty || 0;
                                 for await (let itemStock of findStockWarehouse) {
                                     let qtyRemain = qtyRealRemaining - itemStock.qty
-                                    const findStockInfo = await ItemStockInfo.findOne({where: { ItemId:item.ItemId, qty: itemStock.qty}})
                                     if(qtyRemain>0) {
-                                        if(findStockInfo) {
-                                            await findStockInfo.update({ qty: 0 }, {transaction:t})
-                                        }
-                                        await itemStock.update({qty: 0}, { transaction:t });
-                                        
+                                        await itemStock.update({qty: 0}, { transaction:t });                                        
                                         resReducedStock.push({
                                             ItemId: item.ItemId,
                                             ItemStockWarehouseId : itemStock.id,
-                                            ItemStockInfoId: findStockInfo?findStockInfo.id:null,
                                             reducedQty: itemStock.qty
                                         })
                                         qtyRealRemaining -= item.qty
                                     } else {
-                                        if(findStockInfo) {
-                                            await findStockInfo.update({ qty: itemStock.qty-qtyRealRemaining }, {transaction:t})
-                                        }
                                         await itemStock.update({qty: itemStock.qty-qtyRealRemaining}, { transaction:t });
                                         resReducedStock.push({
                                             ItemId: item.ItemId,
                                             ItemStockWarehouseId : itemStock.id,
-                                            ItemStockInfoId: findStockInfo?findStockInfo.id:null,
                                             reducedQty: qtyRealRemaining
                                         })
                                         break

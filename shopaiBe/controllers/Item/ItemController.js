@@ -1,4 +1,4 @@
-const { Item, ItemCategory, ItemMedicineInfo, ItemConversionUnit, ItemStockInfo, ItemStockWarehouse, Sequelize, sequelize } = require("../../models/index");
+const { Item, ItemCategory, ItemMedicineInfo, ItemConversionUnit, ItemStockInfo, MasterItem_dropdown, ItemStockWarehouse, Sequelize, sequelize } = require("../../models/index");
 const Op = Sequelize.Op;
 
 class ItemController {
@@ -27,17 +27,23 @@ class ItemController {
                     ['createdAt', 'DESC']
                 ],
                 include: [
+                    { model: MasterItem_dropdown },
                     { model: ItemCategory, attributes: ['id','title'] },
                     { model: ItemMedicineInfo, attributes: ['medicineCatalog'] },
-                    { model: ItemStockInfo, attributes: ['qty', 'expiredDate'],
+                    { model: ItemStockWarehouse, attributes: ['id','ItemId', 'qty', 'expiredDate'],
                         required: false,
                         where: {
+                            // id warehousenya yang harian
+                            warehouseId: 3,
                             expiredDate: {
                                 [Op.or]: [
                                     { [Op.gte]: new Date() }, { [Op.eq]: null }
                                 ]
+                            },
+                            qty: {
+                                [Op.gt]: 0
                             }
-                        }
+                        },
                     },
                     { model: ItemConversionUnit }
                 ],
@@ -47,22 +53,43 @@ class ItemController {
             if(result.length) {
                 const resultJson = result.map(el => {
                     let temp = el.toJSON();
-                    if(temp.ItemStockInfos.length) {
-                        temp.totalQty = temp.ItemStockInfos.reduce( function(a, b){
+                    if(temp.ItemStockWarehouses.length) {
+                        temp.totalQty = temp.ItemStockWarehouses.reduce( function(a, b){
                             return a + b.qty;
                         }, 0);
                     }else{
                         temp.totalQty = 0
                     }
+                    temp.unit = temp.MasterItem_dropdown.value
+                    temp.medicineCatalog = temp.ItemMedicineInfo?temp.ItemMedicineInfo.medicineCatalog:""
+                    delete temp.MasterItem_dropdown
                     delete temp.ItemMedicineInfo
-                    delete temp.ItemStockInfos
+                    delete temp.ItemStockWarehouse
                     return temp
                 })
                 
                 let countData = await Item.findAndCountAll({
                     where: query,
                     include: [
-                        { model: ItemMedicineInfo }
+                        { model: MasterItem_dropdown },
+                        { model: ItemCategory, attributes: ['id','title'] },
+                        { model: ItemMedicineInfo, attributes: ['medicineCatalog'] },
+                        { model: ItemStockWarehouse, attributes: ['id','ItemId', 'qty', 'expiredDate'],
+                            required: false,
+                            where: {
+                                // id warehousenya yang harian
+                                warehouseId: 3,
+                                expiredDate: {
+                                    [Op.or]: [
+                                        { [Op.gte]: new Date() }, { [Op.eq]: null }
+                                    ]
+                                },
+                                qty: {
+                                    [Op.gt]: 0
+                                }
+                            },
+                        },
+                        { model: ItemConversionUnit }
                     ],
                 })
                 let hasPrevPage;
@@ -107,7 +134,7 @@ class ItemController {
 
     static async browseByCat(req, res, next) {
         try {
-            const { page = 1, limit = 10, categoryId, isPublic = true } = req.query
+            const { page = 1, limit = 10, categoryId, isPublic } = req.query
             let query = {}
             if(categoryId) {
                 query.ItemCategoryId = categoryId
@@ -115,6 +142,8 @@ class ItemController {
 
             if(isPublic == "true") {
                 query['$ItemMedicineInfo.medicineCatalog$'] = { [Op.eq]: 'public' }
+            } else if(isPublic == "false") {
+                query['$ItemMedicineInfo.medicineCatalog$'] = 'eprescription'
             }
             
             const result = await Item.findAll({
@@ -124,17 +153,23 @@ class ItemController {
                     ['createdAt', 'DESC']
                 ],
                 include: [
+                    { model: MasterItem_dropdown },
                     { model: ItemCategory, attributes: ['id','title'] },
                     { model: ItemMedicineInfo, attributes: ['medicineCatalog'] },
-                    { model: ItemStockInfo, attributes: ['qty', 'expiredDate'],
+                    { model: ItemStockWarehouse, attributes: ['id','ItemId', 'qty', 'expiredDate'],
                         required: false,
                         where: {
+                            // id warehousenya yang harian
+                            warehouseId: 3,
                             expiredDate: {
                                 [Op.or]: [
                                     { [Op.gte]: new Date() }, { [Op.eq]: null }
                                 ]
+                            },
+                            qty: {
+                                [Op.gt]: 0
                             }
-                        }
+                        },
                     },
                     { model: ItemConversionUnit }
                 ],
@@ -145,47 +180,64 @@ class ItemController {
             if(result.length) {
                 const resultJson = result.map(el => {
                     let temp = el.toJSON();
-                    if(temp.ItemStockInfos.length) {
-                        temp.totalQty = temp.ItemStockInfos.reduce( function(a, b){
+                    if(temp.ItemStockWarehouses.length) {
+                        temp.totalQty = temp.ItemStockWarehouses.reduce( function(a, b){
                             return a + b.qty;
                         }, 0);
                     }else{
                         temp.totalQty = 0
                     }
+                    temp.unit = temp.MasterItem_dropdown.value
+                    temp.medicineCatalog = temp.ItemMedicineInfo?temp.ItemMedicineInfo.medicineCatalog:""
+                    delete temp.MasterItem_dropdown
                     delete temp.ItemMedicineInfo
-                    delete temp.ItemStockInfos
+                    delete temp.ItemStockWarehouse
                     return temp
                 })
 
                 const countData = await Item.findAndCountAll({
                     where: query,
                     include: [
-                        { model: ItemMedicineInfo }
+                        { model: MasterItem_dropdown },
+                        { model: ItemCategory, attributes: ['id','title'] },
+                        { model: ItemMedicineInfo, attributes: ['medicineCatalog'] },
+                        { model: ItemStockWarehouse, attributes: ['id','ItemId', 'qty', 'expiredDate'],
+                            required: false,
+                            where: {
+                                // id warehousenya yang harian
+                                warehouseId: 3,
+                                expiredDate: {
+                                    [Op.or]: [
+                                        { [Op.gte]: new Date() }, { [Op.eq]: null }
+                                    ]
+                                },
+                                qty: {
+                                    [Op.gt]: 0
+                                }
+                            },
+                        },
+                        { model: ItemConversionUnit }
                     ],
                 })
                 
                 let hasPrevPage;
                 let hasNextPage;
-                let totalPages = Math.ceil(countData.count / limit)
-    
-                if (result.length === 0) {
-                    hasNextPage = null
-                    hasPrevPage = null
+                let totalPages = Math.ceil(countData.count / limit)                
+
+                if (Number(page) === 1 && totalPages === 1) {
+                    hasNextPage = false
+                    hasPrevPage = false
+                } else if (Number(page) === 1 && totalPages >= 1) {
+                    hasNextPage = true
+                    hasPrevPage = false
+                } else if (Number(page) === totalPages) {
+                    hasNextPage = false
+                    hasPrevPage = true
                 } else {
-                    if (Number(page) === 1 && totalPages === 1) {
-                        hasNextPage = false
-                        hasPrevPage = false
-                    } else if (Number(page) === 1 && totalPages >= 1) {
-                        hasNextPage = true
-                        hasPrevPage = false
-                    } else if (Number(page) === totalPages) {
-                        hasNextPage = false
-                        hasPrevPage = true
-                    } else {
-                        hasNextPage = true
-                        hasPrevPage = true
-                    }
+                    hasNextPage = true
+                    hasPrevPage = true
                 }
+                
                 res.status(200).json({                    
                     message: "success",
                     data: resultJson,
@@ -222,31 +274,40 @@ class ItemController {
             const result = await Item.findByPk(itemId, {
                 attributes: { exclude: ['ItemCategoryId', 'updatedAt'] },
                 include: [
+                    { model: MasterItem_dropdown },
                     { model: ItemCategory, attributes: { exclude: ['updatedAt'] } },
                     { model: ItemMedicineInfo, attributes: {exclude: ['updatedAt']} },
-                    { model: ItemStockInfo, attributes: ['qty', 'expiredDate'],
+                    { model: ItemStockWarehouse, attributes: ['id','ItemId', 'qty', 'expiredDate'],
                         required: false,
                         where: {
+                            // id warehousenya yang harian
+                            warehouseId: 3,
                             expiredDate: {
                                 [Op.or]: [
                                     { [Op.gte]: new Date() }, { [Op.eq]: null }
                                 ]
+                            },
+                            qty: {
+                                [Op.gt]: 0
                             }
-                        }
+                        },
                     },
                     { model: ItemConversionUnit }
                 ]
             })
             if(result) {
                 let resultJson = result.toJSON();
-                if(resultJson.ItemStockInfos.length) {
-                    resultJson.totalQty = resultJson.ItemStockInfos.reduce( function(a, b){
+                if(resultJson.ItemStockWarehouses.length) {
+                    resultJson.totalQty = resultJson.ItemStockWarehouses.reduce( function(a, b){
                         return a + b.qty;
                     }, 0);
                 }else{
                     resultJson.totalQty = 0
                 }
-                delete resultJson.ItemStockInfos
+                resultJson.unit = resultJson.MasterItem_dropdown.value
+                resultJson.medicineCatalog = resultJson.ItemMedicineInfo?resultJson.ItemMedicineInfo.medicineCatalog:""
+                delete resultJson.MasterItem_dropdown
+                delete resultJson.ItemStockWarehouses
 
                 res.status(200).json({
                     message: "success",
@@ -301,25 +362,17 @@ class ItemController {
                     }else{
                         throw new Error('data item stock is empty');
                     }
-                    // console.log(findItem)
-                    // console.log(findItem.ItemStockWarehouses[0].qty)
+                    
                     if(ele.action == 'stock_decrement') {
                         if(dataTemp.totalQty >= ele.qty) {
                             let qtyRealRemaining = ele.qty || 0;
                             for await (let elStock of findItem.ItemStockWarehouses) {
                                 let qtyRemain = qtyRealRemaining - elStock.qty
-                                const findStockInfo = await ItemStockInfo.findOne({where: { ItemId: ele.ItemId, qty: elStock.qty}})
                                 
                                 if(qtyRemain>0) {
-                                    if(findStockInfo) {
-                                        await findStockInfo.update({ qty: 0 }, {transaction:t})
-                                    }
                                     await elStock.update({qty: 0}, { transaction:t });
                                     qtyRealRemaining -= item.qty
                                 } else {
-                                    if(findStockInfo) {
-                                        await findStockInfo.update({ qty: elStock.qty-qtyRealRemaining }, {transaction:t})
-                                    }
                                     await elStock.update({qty: elStock.qty-qtyRealRemaining}, { transaction:t });
                                     break
                                 }
@@ -328,13 +381,6 @@ class ItemController {
                             throw new Error('item stock is not enough');
                         }
                     }else{
-                        const findStockInfo = await ItemStockInfo.findOne({where: { ItemId: ele.ItemId, qty: findItem.ItemStockWarehouses[0].qty}})
-                                
-                        if(findStockInfo) {
-                            await findStockInfo.update({
-                                qty: findItem.ItemStockWarehouses[0].qty+ele.qty
-                            }, {transaction:t})
-                        }
                         await findItem.ItemStockWarehouses[0].update({
                             qty: findItem.ItemStockWarehouses[0].qty+ele.qty
                         }, { transaction:t });
