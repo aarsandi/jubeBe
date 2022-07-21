@@ -342,9 +342,6 @@ class ItemController {
                                     [Op.or]: [
                                         { [Op.gte]: new Date() }, { [Op.eq]: null }
                                     ]
-                                },
-                                qty: {
-                                    [Op.gt]: 0
                                 }
                             },
                         }
