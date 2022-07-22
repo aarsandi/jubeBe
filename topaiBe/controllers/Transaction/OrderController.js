@@ -80,45 +80,6 @@ class OrderController {
         try {
             const checkUser = await UserEprescription.findByPk(dataUser.id);
             if(checkUser) {
-                // check promo user dan expirednya
-                let dataPromo = null;
-                if(promo_id) {
-                    const checkPromo = await PromoUser.findOne({
-                        where: {
-                            id: promo_id,
-                            UserEprescriptionId: dataUser.id,                            
-                        },
-                        include: [
-                            {
-                                model: Promo,
-                                where: {
-                                    isActive: true,
-                                    expiredDate : {
-                                        [Op.or]: [
-                                            { [Op.gte]: new Date() }, { [Op.eq]: null }
-                                        ]
-                                    }
-                                },
-                            },
-                        ],
-                        attributes: ['id','amountUsed']
-                    });
-                    if(checkPromo) {
-                        if(checkPromo.Promo.isCoupon == true){
-                            if(checkPromo.amountUsed>0){
-                                throw new Error('promo data already used');
-                            }else{
-                                dataPromo = checkPromo.toJSON()
-                            }
-                        }else{
-                            dataPromo = checkPromo.toJSON()
-                        }
-                    }else{
-                        throw new Error('promo data not found');
-                    }
-                }
-                // console.log(dataPromo, "data promo")
-
                 // create doc order
                 let reducedItemsTemp = [];
                 let totalPrice = 0;
@@ -240,31 +201,34 @@ class OrderController {
                 }
 
                 const resStockChange = [];
-                const resReducedStock = [];
                 for await (let item of reducedItemsTemp) {
                     const findStockWarehouse = await ItemStockWarehouse.findAll({where: { ItemId:item.ItemId, warehouseId: 3, qty: { [Op.gt]: 0 } }})
                     if(findStockWarehouse.length) {
-                        let qtyRealRemaining = item.reducedQty || 0;
-                        for await (let itemStock of findStockWarehouse) {
-                            let qtyRemain = qtyRealRemaining - itemStock.qty
-                            if(qtyRemain>0) {
-                                await itemStock.update({qty: 0}, { transaction:t });                                
-                                resReducedStock.push({
-                                    ItemId: item.ItemId,
-                                    ItemStockWarehouseId : itemStock.id,
-                                    reducedQty: itemStock.qty
-                                })
-                                qtyRealRemaining -= item.qty
-                            } else {
-                                await itemStock.update({qty: itemStock.qty-qtyRealRemaining}, { transaction:t });
-                                resReducedStock.push({
-                                    ItemId: item.ItemId,
-                                    ItemStockWarehouseId : itemStock.id,
-                                    reducedQty: qtyRealRemaining
-                                })
-                                break
-                            }
-                        }
+
+                        await findStockWarehouse[0].increment({qty: -item.reducedQty}, { transaction:t });
+
+                        // let qtyRealRemaining = item.reducedQty || 0;
+                        // for await (let itemStock of findStockWarehouse) {
+                        //     let qtyRemain = qtyRealRemaining - itemStock.qty
+                        //     if(qtyRemain>0) {
+                        //         await itemStock.update({qty: 0}, { transaction:t });                                
+                        //         resReducedStock.push({
+                        //             ItemId: item.ItemId,
+                        //             ItemStockWarehouseId : itemStock.id,
+                        //             reducedQty: itemStock.qty
+                        //         })
+                        //         qtyRealRemaining -= item.qty
+                        //     } else {
+                        //         await itemStock.update({qty: itemStock.qty-qtyRealRemaining}, { transaction:t });
+                        //         resReducedStock.push({
+                        //             ItemId: item.ItemId,
+                        //             ItemStockWarehouseId : itemStock.id,
+                        //             reducedQty: qtyRealRemaining
+                        //         })
+                        //         break
+                        //     }
+                        // }
+
                         resStockChange.push({
                             action: 'stock_decrement',
                             ItemId: item.ItemId,
@@ -298,7 +262,7 @@ class OrderController {
                         addressGeo: checkUser.addressGeo
                     },
                     status: "UNPAID",
-                    stockReduce: resReducedStock
+                    stockReduce: "resReducedStock"
                 }, { transaction: t }
                 )
 

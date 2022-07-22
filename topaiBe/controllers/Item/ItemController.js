@@ -359,28 +359,30 @@ class ItemController {
                     }else{
                         throw new Error('data item stock is empty');
                     }
-                    // console.log(findItem)
-                    // console.log(findItem.ItemStockWarehouses[0].qty)
+                    
                     if(ele.action == 'stock_decrement') {
-                        if(dataTemp.totalQty >= ele.qty) {
-                            let qtyRealRemaining = ele.qty || 0;
-                            for await (let elStock of findItem.ItemStockWarehouses) {
-                                let qtyRemain = qtyRealRemaining - elStock.qty                                
-                                if(qtyRemain>0) {
-                                    await elStock.update({qty: 0}, { transaction:t });
-                                    qtyRealRemaining -= item.qty
-                                } else {
-                                    await elStock.update({qty: elStock.qty-qtyRealRemaining}, { transaction:t });
-                                    break
-                                }
-                            }
-                        }else{
-                            throw new Error('item stock is not enough');
-                        }
+                        await findItem.ItemStockWarehouses[0].increment({qty: -ele.qty}, { transaction:t });
+
+                        // if(dataTemp.totalQty >= ele.qty) {
+                        //     let qtyRealRemaining = ele.qty || 0;
+                        //     for await (let elStock of findItem.ItemStockWarehouses) {
+                        //         let qtyRemain = qtyRealRemaining - elStock.qty                                
+                        //         if(qtyRemain>0) {
+                        //             await elStock.update({qty: 0}, { transaction:t });
+                        //             qtyRealRemaining -= item.qty
+                        //         } else {
+                        //             await elStock.update({qty: elStock.qty-qtyRealRemaining}, { transaction:t });
+                        //             break
+                        //         }
+                        //     }
+                        // }else{
+                        //     throw new Error('item stock is not enough');
+                        // }
                     }else{
-                        await findItem.ItemStockWarehouses[0].update({
-                            qty: findItem.ItemStockWarehouses[0].qty+ele.qty
-                        }, { transaction:t });
+                        await findItem.ItemStockWarehouses[0].increment({qty: ele.qty}, { transaction:t });
+                        // await findItem.ItemStockWarehouses[0].update({
+                        //     qty: findItem.ItemStockWarehouses[0].qty+ele.qty
+                        // }, { transaction:t });
                     }
                 }else{
                     throw new Error('data not found');
