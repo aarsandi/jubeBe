@@ -15,21 +15,62 @@ class OrderController {
     static async browse(req, res, next) {
         try {
             const datauser = req.decoded
+            const { page = 1, limit = 5 } = req.query
+
             const result = await Order.findAll({
                 where: {
                     UserEprescriptionId: datauser.id
                 },
+                offset: (page - 1) * limit, limit: limit,
                 order: [
                     ['createdAt', 'DESC']
                 ],
-                attributes: { exclude: ['updatedAt'] },
+                attributes: ['id','orderRefNumber', 'orderType', 'ttlItemPrice', 'ttlAmount', 'ttlItem', 'status', 'stockReduce', 'createdAt'],
                 include: [
-                    { model: OrderItem, attributes: { exclude: ['updatedAt'] } },
+                    { model: OrderItem, attributes: ['ItemId', 'price', 'subtotalPrice', 'subTotalAmount', 'tax_amount', 'qtyUnit', 'unit'] },
                     { model: OrderConcoction, attributes: { exclude: ['updatedAt'] } },
                 ]
             })
+            
             if(result.length) {
-                res.status(200).json({ message: "success", data: result })
+                let countData = await Order.findAndCountAll({
+                    include: [
+                        { model: OrderItem, attributes: { exclude: ['updatedAt'] } },
+                        { model: OrderConcoction, attributes: { exclude: ['updatedAt'] } },
+                    ]
+                })
+                let hasPrevPage;
+                let hasNextPage;
+                let totalPages = Math.ceil(countData.count / limit)
+    
+                if (result.length === 0) {
+                    hasNextPage = null
+                    hasPrevPage = null
+                } else {
+                    if (Number(page) === 1 && totalPages === 1) {
+                        hasNextPage = false
+                        hasPrevPage = false
+                    } else if (Number(page) === 1 && totalPages >= 1) {
+                        hasNextPage = true
+                        hasPrevPage = false
+                    } else if (Number(page) === totalPages) {
+                        hasNextPage = false
+                        hasPrevPage = true
+                    } else {
+                        hasNextPage = true
+                        hasPrevPage = true
+                    }
+                }
+                res.status(200).json({
+                    message: "success",
+                    data: result,
+                    totalDocs: countData.count,
+                    totalPages,
+                    page: Number(page),
+                    limit: Number(limit),
+                    hasPrevPage,
+                    hasNextPage,
+                })
             }else{
                 res.status(404).json({ message: "data not found", data: null })
             }
@@ -201,33 +242,18 @@ class OrderController {
                 }
 
                 const resStockChange = [];
+                const resReducedStock = [];
                 for await (let item of reducedItemsTemp) {
                     const findStockWarehouse = await ItemStockWarehouse.findAll({where: { ItemId:item.ItemId, warehouseId: 3, qty: { [Op.gt]: 0 } }})
                     if(findStockWarehouse.length) {
 
                         await findStockWarehouse[0].increment({qty: -item.reducedQty}, { transaction:t });
 
-                        // let qtyRealRemaining = item.reducedQty || 0;
-                        // for await (let itemStock of findStockWarehouse) {
-                        //     let qtyRemain = qtyRealRemaining - itemStock.qty
-                        //     if(qtyRemain>0) {
-                        //         await itemStock.update({qty: 0}, { transaction:t });                                
-                        //         resReducedStock.push({
-                        //             ItemId: item.ItemId,
-                        //             ItemStockWarehouseId : itemStock.id,
-                        //             reducedQty: itemStock.qty
-                        //         })
-                        //         qtyRealRemaining -= item.qty
-                        //     } else {
-                        //         await itemStock.update({qty: itemStock.qty-qtyRealRemaining}, { transaction:t });
-                        //         resReducedStock.push({
-                        //             ItemId: item.ItemId,
-                        //             ItemStockWarehouseId : itemStock.id,
-                        //             reducedQty: qtyRealRemaining
-                        //         })
-                        //         break
-                        //     }
-                        // }
+                        resReducedStock.push({
+                            ItemId: item.ItemId,
+                            ItemStockWarehouseId : findStockWarehouse[0].id,
+                            reducedQty: item.reducedQty
+                        })
 
                         resStockChange.push({
                             action: 'stock_decrement',
@@ -262,7 +288,7 @@ class OrderController {
                         addressGeo: checkUser.addressGeo
                     },
                     status: "UNPAID",
-                    stockReduce: "resReducedStock"
+                    stockReduce: resReducedStock
                 }, { transaction: t }
                 )
 

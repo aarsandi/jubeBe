@@ -380,9 +380,6 @@ class ItemController {
                         // }
                     }else{
                         await findItem.ItemStockWarehouses[0].increment({qty: ele.qty}, { transaction:t });
-                        // await findItem.ItemStockWarehouses[0].update({
-                        //     qty: findItem.ItemStockWarehouses[0].qty+ele.qty
-                        // }, { transaction:t });
                     }
                 }else{
                     throw new Error('data not found');
