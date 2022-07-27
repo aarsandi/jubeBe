@@ -5,7 +5,7 @@ const redis = new Redis();
 
 router.get( '/test',  async (req, res, next) => {
     try {
-        const dataRes = await redis.get('name')
+        // const dataRes = await redis.get('name')
         
         res.status(200).json({
             message: "success",
