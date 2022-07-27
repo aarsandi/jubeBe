@@ -1,7 +1,7 @@
 const router = require("express").Router()
-const Redis = require("ioredis");
+// const Redis = require("ioredis");
 
-const redis = new Redis();
+// const redis = new Redis();
 
 router.get( '/test',  async (req, res, next) => {
     try {
