@@ -1,11 +1,11 @@
 const router = require("express").Router()
-// const Redis = require("ioredis");
+const Redis = require("ioredis");
 
-// const redis = new Redis();
+const redis = new Redis();
 
 router.get( '/test',  async (req, res, next) => {
     try {
-        // const dataRes = await redis.get('name')
+        const dataRes = await redis.get('name')
         
         res.status(200).json({
             message: "success",
@@ -13,7 +13,7 @@ router.get( '/test',  async (req, res, next) => {
         })
     } catch (err) {
         res.status(400).json({
-            err
+            err : err
         })
     }
 })
