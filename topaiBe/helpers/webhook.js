@@ -3,7 +3,7 @@ const axios = require('axios').default;
 
 class Webhook {
     static itemStockChange(data) {
-        axios.post('http://141.136.47.149/stok_change_topai', {
+        axios.post('http://141.136.47.149:2022/stok_change_topai', {
             data: data
         })
         .then(_ => {

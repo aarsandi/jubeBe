@@ -9,11 +9,6 @@ const toobusy = require('toobusy-js');
 
 const app = express()
 
-// const {
-//     StartingCron
-// } = require("./cronjob");
-// StartingCron();
-
 app.use(cors())
 app.use(express.json())
 app.use(morgan("dev"));
