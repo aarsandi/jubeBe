@@ -6,8 +6,6 @@ const routes = require('./routes/index')
 const errorHandler = require('./middleware/errorHandler')
 const morgan = require("morgan");
 const toobusy = require('toobusy-js');
-toobusy.maxLag(100);
-toobusy.interval(750);
 
 const app = express()
 const server = require('http').Server(app)
@@ -45,7 +43,7 @@ const serverApp = server.listen(port, () => {
     console.log(`Server Listen at : ${port}`)
 });
 
-serverApp.timeout = 60000;
+serverApp.timeout = 500000;
 
 // app.listen(port, () => {
 //     console.log(`Server Listen at : ${port}`)
