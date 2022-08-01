@@ -308,6 +308,7 @@ class ItemController {
                 resultJson.medicineCatalog = resultJson.ItemMedicineInfo?resultJson.ItemMedicineInfo.medicineCatalog:""
                 delete resultJson.MasterItem_dropdown
                 delete resultJson.ItemStockWarehouses
+                delete resultJson.ItemMedicineInfo
 
                 res.status(200).json({
                     message: "success",

@@ -5,7 +5,9 @@ const cors = require('cors')
 const routes = require('./routes/index')
 const errorHandler = require('./middleware/errorHandler')
 const morgan = require("morgan");
-// const toobusy = require('toobusy-js');
+const toobusy = require('toobusy-js');
+toobusy.maxLag(100);
+toobusy.interval(750);
 
 const app = express()
 const server = require('http').Server(app)
@@ -15,16 +17,16 @@ app.use(express.json())
 app.use(morgan("dev"));
 app.use(express.urlencoded({ extended: true }))
 
-// app.use(function (req, res, next) {
-//     if (toobusy()) {
-//         res.status(503).json({
-//             message: `Server is busy right now, Please try again later`,
-//             status: 503
-//         });
-//     } else {
-//         next();
-//     }
-// });
+app.use(function (req, res, next) {
+    if (toobusy()) {
+        res.status(503).json({
+            message: `Server is busy right now, Please try again later`,
+            status: 503
+        });
+    } else {
+        next();
+    }
+});
 
 app.use('/', routes)
 
