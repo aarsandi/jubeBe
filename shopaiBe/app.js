@@ -5,30 +5,26 @@ const cors = require('cors')
 const routes = require('./routes/index')
 const errorHandler = require('./middleware/errorHandler')
 const morgan = require("morgan");
-const toobusy = require('toobusy-js');
+// const toobusy = require('toobusy-js');
 
 const app = express()
-
-// const {
-//     StartingCron
-// } = require("./cronjob");
-// StartingCron();
+const server = require('http').Server(app)
 
 app.use(cors())
 app.use(express.json())
 app.use(morgan("dev"));
 app.use(express.urlencoded({ extended: true }))
 
-app.use(function (req, res, next) {
-    if (toobusy()) {
-        res.status(503).json({
-            message: `Server is busy right now, Please try again later`,
-            status: 503
-        });
-    } else {
-        next();
-    }
-});
+// app.use(function (req, res, next) {
+//     if (toobusy()) {
+//         res.status(503).json({
+//             message: `Server is busy right now, Please try again later`,
+//             status: 503
+//         });
+//     } else {
+//         next();
+//     }
+// });
 
 app.use('/', routes)
 
@@ -42,6 +38,13 @@ app.use((req, res, next) => {
     })
 })
 
-app.listen(port, () => {
+// Setup server
+const serverApp = server.listen(port, () => {
     console.log(`Server Listen at : ${port}`)
-})
+});
+
+serverApp.timeout = 60000;
+
+// app.listen(port, () => {
+//     console.log(`Server Listen at : ${port}`)
+// })
